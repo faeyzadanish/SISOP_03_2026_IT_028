@@ -1,7 +1,6 @@
 #include "arena.h"
 #include <termios.h>
 
-// Fungsi buat ambil input keyboard tanpa perlu tekan ENTER
 int getch() {
     struct termios oldt, newt;
     int ch;
@@ -24,7 +23,6 @@ void add_log(char *msg) {
     snprintf(logs[0], 100, "%s", msg);
 }
 
-// --- TULISAN GEDE ETERION (ASCII ART) ---
 void print_logo() {
     printf("\033[1;36m");
     printf("  ______ _______ ______ ______  _____  ____  _   _ \n");
@@ -54,16 +52,11 @@ void battle_logic(char *opp_name) {
     while(my_hp > 0 && o_hp > 0) {
         system("clear");
         printf("==================== BATTLE FIELD ====================\n");
-        // Kamu - HIJAU
         printf("\033[1;32m%-15s (YOU)\033[0m | Weapon: %s\n", data->users[current_idx].username, data->users[current_idx].weapon);
         printf("HP: [\033[1;32m%-20.*s\033[0m] %d/%d\n", (my_hp * 20 / m_hp), "####################", my_hp, m_hp);
-        
         printf("\n                 \033[1;33mVS\033[0m\n\n");
-        
-        // Musuh - MERAH
         printf("\033[1;31m%-15s (ENEMY)\033[0m\n", opp_name);
         printf("HP: [\033[1;31m%-20.*s\033[0m] %d/%d\n", (o_hp * 20 / o_m), "####################", o_hp, o_m);
-        
         printf("\nCombat Log:\n");
         for(int i=0; i<5; i++) printf("> %s\n", logs[i]);
         printf("------------------------------------------------------\n");
@@ -74,11 +67,9 @@ void battle_logic(char *opp_name) {
             if(strcmp(data->users[current_idx].weapon, "Wood Sword")==0) extra = 10;
             else if(strcmp(data->users[current_idx].weapon, "Iron Sword")==0) extra = 25;
             else if(strcmp(data->users[current_idx].weapon, "Excalibur")==0) extra = 100;
-            
             int dmg = 15 + extra;
             o_hp -= dmg;
             char m[100]; sprintf(m, "\033[1;32mYou hit for %d!\033[0m", dmg); add_log(m);
-            
             if(o_hp > 0) {
                 int edmg = 12 + (rand() % 10);
                 my_hp -= edmg;
@@ -107,19 +98,14 @@ void battle_logic(char *opp_name) {
 }
 
 void matchmaking() {
-    system("clear");
-    print_logo();
+    system("clear"); print_logo();
     printf("\033[1;33m[ MATCHMAKING MODE ]\033[0m\n");
-    printf("Searching for Opponent...\n");
-    
     sem_op(semid, -1);
     if (data->pvp_waiting_idx == -1) {
         data->pvp_waiting_idx = current_idx;
         sem_op(semid, 1);
-        
         for(int i = 35; i > 0; i--) {
-            printf("\rWaiting for Player... [%d s] (Press 'q' to cancel) ", i); fflush(stdout);
-            // Catatan: q-cancel butuh multithreading, kita pakai timeout murni dulu biar stabil
+            printf("\rWaiting for Player... [%d s] ", i); fflush(stdout);
             sleep(1);
             if (data->pvp_waiting_idx != current_idx) {
                 battle_logic("Enemy Player");
@@ -129,7 +115,7 @@ void matchmaking() {
         sem_op(semid, -1);
         data->pvp_waiting_idx = -1;
         sem_op(semid, 1);
-        printf("\n\033[1;35mNo players found. Entering BOT Mode...\033[0m\n"); sleep(1);
+        printf("\n\033[1;35mEntering BOT Mode...\033[0m\n"); sleep(1);
         battle_logic("Wild Beast (BOT)");
     } else {
         data->pvp_waiting_idx = -1; 
@@ -141,86 +127,71 @@ void matchmaking() {
 void armory() {
     while(1) {
         system("clear"); print_logo(); print_status();
-        printf("\n1. Wood Sword   (100G) [+10 Dmg]\n");
-        printf("2. Iron Sword   (400G) [+25 Dmg]\n");
-        printf("3. Excalibur   (2000G) [+100 Dmg]\n");
-        printf("4. Back to Town\n");
-        printf("\nChoice: ");
+        printf("\n1. Wood Sword   (100G)\n2. Iron Sword   (400G)\n3. Excalibur   (2000G)\n4. Back\nChoice: ");
         char c = getch();
         int p=0; char n[50];
         if(c=='1'){p=100; strcpy(n,"Wood Sword");}
         else if(c=='2'){p=400; strcpy(n,"Iron Sword");}
         else if(c=='3'){p=2000; strcpy(n,"Excalibur");}
         else if(c=='4') break;
-        
-        if(p > 0) {
-            if(data->users[current_idx].gold >= p) {
-                sem_op(semid,-1);
-                data->users[current_idx].gold -= p;
-                strcpy(data->users[current_idx].weapon, n);
-                sem_op(semid,1);
-                printf("\n\033[1;32mSuccessfully bought %s!\033[0m", n); sleep(1);
-            } else {
-                printf("\n\033[1;31mNot enough gold!\033[0m"); sleep(1);
-            }
+        if(p > 0 && data->users[current_idx].gold >= p) {
+            sem_op(semid,-1); data->users[current_idx].gold -= p;
+            strcpy(data->users[current_idx].weapon, n); sem_op(semid,1);
+            printf("\n\033[1;32mBought %s!\033[0m", n); sleep(1);
         }
     }
 }
 
 void history() {
     system("clear"); print_logo();
-    printf("\033[1;33m=== BATTLE RECORDS ===\033[0m\n");
+    printf("\033[1;33m=== HISTORY ===\033[0m\n");
     User *u = &data->users[current_idx];
-    if(u->history_count == 0) printf("No battles recorded yet.\n");
-    for(int i=0; i<(u->history_count > 10 ? 10 : u->history_count); i++) {
+    for(int i=0; i<(u->history_count > 10 ? 10 : u->history_count); i++)
         printf("%d. [%s] vs %-15s\n", i+1, u->history[i].result, u->history[i].opponent);
-    }
-    printf("\nPress Enter to back..."); getchar();
+    printf("\nEnter to back..."); getchar();
 }
 
 int main() {
     int shmid = shmget(SHM_KEY, sizeof(SharedData), 0666);
-    if(shmid < 0) { printf("Error: Run ./orion first!\n"); return 1; }
     data = shmat(shmid, NULL, 0);
     semid = semget(SEM_KEY, 1, 0666);
 
     while(1) {
         system("clear"); print_logo();
-        printf("1. Register Account\n2. Login Game\n3. Exit\n\nChoice: ");
+        printf("1. Register\n2. Login\n3. Exit\nChoice: ");
         char c = getch();
         if(c == '1') {
             sem_op(semid, -1);
-            printf("\nNew Username: "); scanf("%s", data->users[data->user_count].username);
-            printf("New Password: "); scanf("%s", data->users[data->user_count].password);
-            data->users[data->user_count].gold = 500;
+            printf("\nUser: "); scanf("%s", data->users[data->user_count].username);
+            printf("Pass: "); scanf("%s", data->users[data->user_count].password);
+            
+            // --- INI PERUBAHANNYA BOS: GOLD JADI 150 ---
+            data->users[data->user_count].gold = 150; 
+            
             data->users[data->user_count].lvl = 1;
             data->users[data->user_count].xp = 0;
             data->users[data->user_count].history_count = 0;
             strcpy(data->users[data->user_count].weapon, "None");
             data->user_count++;
             sem_op(semid, 1);
-            printf("\n\033[1;32mRegistration Successful!\033[0m"); sleep(1);
+            printf("\nSuccess!"); sleep(1);
         } else if(c == '2') {
             char u[50], p[50];
-            printf("\nUsername: "); scanf("%s", u); printf("Password: "); scanf("%s", p);
-            int found = -1;
+            printf("\nUser: "); scanf("%s", u); printf("Pass: "); scanf("%s", p);
             for(int i=0; i<data->user_count; i++) {
                 if(strcmp(data->users[i].username, u) == 0 && strcmp(data->users[i].password, p) == 0) {
-                    found = i; break;
+                    current_idx = i;
+                    while(1) {
+                        system("clear"); print_logo(); print_status();
+                        printf("1. Battle\n2. Armory\n3. History\n4. Logout\nChoice: ");
+                        char s = getch();
+                        if(s=='1') matchmaking();
+                        else if(s=='2') armory();
+                        else if(s=='3') history();
+                        else if(s=='4') break;
+                    }
                 }
             }
-            if(found != -1) {
-                current_idx = found;
-                while(1) {
-                    system("clear"); print_logo(); print_status();
-                    printf("1. Battle (PVP/BOT)\n2. Armory Shop\n3. Match History\n4. Logout\n\nChoice: ");
-                    char s = getch();
-                    if(s=='1') matchmaking();
-                    else if(s=='2') armory();
-                    else if(s=='3') history();
-                    else if(s=='4') break;
-                }
-            } else { printf("\n\033[1;31mInvalid Credentials!\033[0m"); sleep(1); }
         } else if(c == '3') break;
     }
     return 0;
