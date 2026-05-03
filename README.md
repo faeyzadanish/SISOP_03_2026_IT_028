@@ -310,7 +310,7 @@ Setiap kali pengguna mengetik pesan dan menekan Enter, input tersebut akan diber
 Setiap data yang masuk dari server akan langsung dicetak ke terminal pengguna. Jika server memutus koneksi (misalnya saat admin melakukan shutdown), client akan mendeteksi nilai read yang kosong (valread <= 0), keluar dari perulangan, dan menutup aplikasi secara bersih.
 </p>
 
-### Output
+### 4. Dokumentasi Output
 
 **Output pada Sisi Server (The Wired)**
 
