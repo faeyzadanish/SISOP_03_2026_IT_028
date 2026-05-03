@@ -309,3 +309,88 @@ Setiap kali pengguna mengetik pesan dan menekan Enter, input tersebut akan diber
   4. **Penerimaan Data:**
 Setiap data yang masuk dari server akan langsung dicetak ke terminal pengguna. Jika server memutus koneksi (misalnya saat admin melakukan shutdown), client akan mendeteksi nilai read yang kosong (valread <= 0), keluar dari perulangan, dan menutup aplikasi secara bersih.
 </p>
+
+### Output
+
+**Output pada Sisi Server (The Wired)**
+
+Saat server dijalankan, ia akan masuk ke mode listening dan mencatat setiap aktivitas entitas yang mencoba masuk ke jaringan.
+
+```c
+The Wired is running on port 8080...
+[System] SERVER ONLINE
+[System] User 'alice' connected
+[System] User 'lain' connected
+[Admin] RPC_GET_USERS
+[Admin] RPC_GET_UPTIME
+[System] EMERGENCY SHUTDOWN INITIATED
+Shutdown by Admin.
+```
+
+**Output pada Sisi Client (NAVI)**
+
+1. **Registrasi & Validasi Nama (Identitas Unik)**
+
+Jika user memasukkan nama yang sudah ada di jaringan, server akan menolak hingga user memasukkan nama yang unik.
+
+```c
+Enter your name: alice
+[System] The identity 'alice' is already synchronized in The Wired.
+Enter your name: lain
+--- Welcome to The Wired, lain ---
+>
+```
+
+2. **Mekanisme Chat & Broadcast**
+
+Pesan yang diketik oleh satu klien akan muncul di terminal klien lainnya dengan format [nama]: pesan.
+
+    1. Trminal Alice
+    ```c
+    > hello lain
+    [lain]: hello alice
+    ```
+    2. Terminal Lain
+    ```c
+    [alice]: hello lain
+    > hello alice
+    ```
+3. **Console Admin (The Knights)**
+
+Entitas pengelola harus memasukkan password untuk mendapatkan akses perintah jarak jauh (RPC).
+
+```c
+Enter your name: The Knights
+Enter Password: ********
+
+[System] Authentication Successful. Granted Admin privileges.
+
+=== THE KNIGHTS CONSOLE ===
+1. Check Active Entities (Users)
+2. Check Server Uptime
+3. Execute Emergency Shutdown
+4. Disconnect
+Command >> 1
+Active NAVIs: alice, lain, 
+Command >> 2
+Server Uptime: 45 seconds
+Command >> 3
+[System] Disconnecting from The Wired...
+```
+
+**Output File Log (history.log)**
+
+Setiap transmisi dicatat secara permanen dengan stempel waktu sesuai format [YYYY-MM-DD HH:MM:SS].
+
+```c
+[2026-04-26 19:06:40] [System] [SERVER ONLINE]
+[2026-04-26 19:06:46] [System] [User 'alice' connected]
+[2026-04-26 19:06:50] [System] [User 'lain' connected]
+[2026-04-26 19:06:56] [User] [[alice]: hello lain]
+[2026-04-26 19:06:59] [User] [[lain]: hello alice]
+[2026-04-26 19:07:27] [System] [User 'The Knights' connected]
+[2026-04-26 19:07:29] [Admin] [RPC_GET_USERS]
+[2026-04-26 19:07:29] [Admin] [RPC_GET_UPTIME]
+[2026-04-26 19:07:31] [Admin] [RPC_SHUTDOWN]
+[2026-04-26 19:07:31] [System] [EMERGENCY SHUTDOWN INITIATED]
+```
